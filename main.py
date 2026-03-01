@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI
 from schemas import UserCreate
 from database import init_db, create_user, get_user_by_name
 
@@ -11,14 +11,14 @@ async def startup():
 
 
 @app.get("/")
-def main():
+async def main():
     return "Hello world"
 
 @app.post("/create_user")
 async def create(data: UserCreate):
-    existing = await get_user_by_name(data.name)
+    existing = await get_user_by_name(data.username)
     if existing:
-        return {"success": False, "message": f"Пользователь '{data.name}' уже существует"}
+        return {"success": False, "message": f"Пользователь '{data.username}' уже существует"}
         
-    result = await create_user(data.name)
-    return {"success": True, "username": result}
+    result = await create_user(data.username, data.password, data.email)
+    return {"success": True, "id": result.id, "username": result.username}
