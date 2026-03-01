@@ -1,7 +1,9 @@
-from fastapi import FastAPI
-from schemas import UserCreate
-from database import init_db, create_user, get_user_by_name
+from fastapi import FastAPI, Depends
+from fastapi.responses import JSONResponse
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from schemas import UserRegister, UserLogin
+from database import init_db, get_db, create_user, get_user_by_name, password_check, update_auth_token
 
 app = FastAPI()
 
@@ -14,11 +16,25 @@ async def startup():
 async def main():
     return "Hello world"
 
-@app.post("/create_user")
-async def create(data: UserCreate):
+@app.post("/register")
+async def register(data: UserRegister):
     existing = await get_user_by_name(data.username)
     if existing:
         return {"success": False, "message": f"Пользователь '{data.username}' уже существует"}
         
     result = await create_user(data.username, data.password, data.email)
     return {"success": True, "id": result.id, "username": result.username}
+
+
+@app.post("/login")
+async def login(data: UserLogin, db: AsyncSession = Depends(get_db)):
+    existing = await get_user_by_name(data.username, db)
+    if existing:
+        user = await password_check(data.username, data.password, db)
+        token = await update_auth_token(user, db)
+        return {"success": True, "access_token": token}
+    else:
+        return JSONResponse(
+            status_code=404,
+            content={"success": False, "message": "Такого пользователя нет"}
+        )
