@@ -14,7 +14,7 @@ async def startup():
 
 @app.get("/")
 async def main():
-    return "Hello world"
+    return {"success": True, "message": "This is a future project with task management for users."}
 
 @app.post("/register")
 async def register(data: UserRegister):
