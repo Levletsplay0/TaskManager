@@ -2,8 +2,8 @@ from fastapi import FastAPI, Depends
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from schemas import UserRegister, UserLogin
-from database import init_db, get_db, create_user, get_user_by_name, password_check, update_auth_token
+from schemas import UserRegister, UserLogin, UserProfile
+from database import init_db, get_db, create_user, get_user_by_name, password_check, update_auth_token, get_user_by_token
 
 app = FastAPI()
 
@@ -37,4 +37,15 @@ async def login(data: UserLogin, db: AsyncSession = Depends(get_db)):
         return JSONResponse(
             status_code=404,
             content={"success": False, "message": "Такого пользователя нет"}
+        )
+    
+@app.post("/user")
+async def get_user(data: UserProfile, db: AsyncSession = Depends(get_db)):
+    user = await get_user_by_token(data.token, db)
+    if user:
+        return user
+    else:
+        return JSONResponse(
+            status_code=401,
+            content={"success": False, "message": "Токен устарел или невалидный"}
         )

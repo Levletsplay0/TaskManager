@@ -47,4 +47,10 @@ async def update_auth_token(user: Users, db: AsyncSession):
     await db.commit()
     return token
 
-
+async def get_user_by_token(token, db: AsyncSession):
+    result = await db.execute(select(Users).where(Users.token == token))
+    user = result.scalar_one_or_none()
+    if user:
+        return user
+    else:
+        return None
