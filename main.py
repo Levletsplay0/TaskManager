@@ -17,8 +17,8 @@ async def main():
     return {"success": True, "message": "This is a future project with task management for users."}
 
 @app.post("/register")
-async def register(data: UserRegister):
-    existing = await get_user_by_name(data.username)
+async def register(data: UserRegister, db: AsyncSession = Depends(get_db)):
+    existing = await get_user_by_name(data.username, db)
     if existing:
         return {"success": False, "message": f"Пользователь '{data.username}' уже существует"}
         
