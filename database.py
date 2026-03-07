@@ -1,6 +1,6 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
-from models import Users, Base
+from models import Users, Base, Projects
 from werkzeug.security import generate_password_hash, check_password_hash
 import secrets
 
@@ -52,5 +52,18 @@ async def get_user_by_token(token, db: AsyncSession):
     user = result.scalar_one_or_none()
     if user:
         return user
+    else:
+        return None
+
+
+async def create_user_project(token, name, db: AsyncSession):
+    user = await get_user_by_token(token=token, db=db)
+    if user:
+        user_id = user.id
+        project = Projects(name=name, owner_id=user_id)
+        db.add(project)
+        await db.commit()
+        
+        return project
     else:
         return None

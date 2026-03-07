@@ -11,3 +11,7 @@ class UserLogin(BaseModel):
 
 class UserProfile(BaseModel):
     token: str
+
+class Project(BaseModel):
+    token: str
+    name: str
