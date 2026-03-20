@@ -1,8 +1,9 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
-from models import Users, Base, Projects
+from models import Users, Base, Projects, Tasks
 from werkzeug.security import generate_password_hash, check_password_hash
 import secrets
+from sqlalchemy.orm import selectinload
 
 
 
@@ -58,12 +59,72 @@ async def get_user_by_token(token, db: AsyncSession):
 
 async def create_user_project(token, name, db: AsyncSession):
     user = await get_user_by_token(token=token, db=db)
-    if user:
-        user_id = user.id
-        project = Projects(name=name, owner_id=user_id)
-        db.add(project)
-        await db.commit()
-        
-        return project
-    else:
+    if not user:
         return None
+    user_id = user.id
+    project = Projects(name=name, owner_id=user_id)
+    db.add(project)
+    await db.commit()
+    await db.refresh(project)
+    
+    return project
+
+
+async def add_task_to_project(token, name, project_id, db: AsyncSession):
+    user = await get_user_by_token(token=token, db=db)
+    if not user:
+        return None
+    
+    result = await db.execute(
+        select(Projects).where(
+            Projects.project_id == project_id,
+            Projects.owner_id == user.id
+        )
+    )
+
+    project = result.scalar_one_or_none()
+
+    if not project:
+        return None
+    
+    task = Tasks(name=name, project_id=project_id)
+    db.add(task)
+    await db.commit()
+    await db.refresh(task)
+
+    return task
+
+
+
+async def get_user_project(token, project_id, db: AsyncSession):
+    user = await get_user_by_token(token=token, db=db)
+    if not user:
+        return None
+    
+    result = await db.execute(
+        select(Projects)
+        .options(selectinload(Projects.tasks)) 
+        .where(
+            Projects.project_id == project_id,
+            Projects.owner_id == user.id
+        )
+    )
+    project = result.scalar_one_or_none()
+    if not project:
+        return None
+    
+
+    return {
+        "project_id": project.project_id,
+        "project_name": project.name,
+        "created_at": project.created_at,
+        "tasks_count": len(project.tasks),
+        "tasks": [
+            {
+                "task_id": task.task_id,
+                "name": task.name,
+                "created_at": task.created_at
+            }
+            for task in project.tasks
+        ]
+    }

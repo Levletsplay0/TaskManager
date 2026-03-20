@@ -15,3 +15,12 @@ class UserProfile(BaseModel):
 class Project(BaseModel):
     token: str
     name: str
+
+class Task(BaseModel):
+    token: str
+    name: str
+    project_id: int
+
+class GetProject(BaseModel):
+    token: str
+    project_id: int
