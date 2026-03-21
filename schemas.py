@@ -24,3 +24,8 @@ class Task(BaseModel):
 class GetProject(BaseModel):
     token: str
     project_id: int
+
+class SetTask(BaseModel):
+    token: str
+    task_id: int
+    is_completed: bool

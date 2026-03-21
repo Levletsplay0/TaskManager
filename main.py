@@ -2,10 +2,12 @@ from fastapi import FastAPI, Depends
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from schemas import UserRegister, UserLogin, UserProfile, Project, Task, GetProject
+from schemas import (UserRegister, UserLogin, UserProfile, 
+                     Project, Task, GetProject, SetTask)
 from database import (init_db, get_db, create_user, get_user_by_name, 
                       password_check, update_auth_token, get_user_by_token, 
-                      create_user_project, add_task_to_project, get_user_project)
+                      create_user_project, add_task_to_project, get_user_project, 
+                      set_task_is_complete)
 app = FastAPI()
 
 @app.on_event("startup")
@@ -83,6 +85,19 @@ async def get_project(data: GetProject, db: AsyncSession = Depends(get_db)):
     project = await get_user_project(data.token, data.project_id, db)
     if project:
         return {"success": True, "data": project}
+        
+    else:
+        return JSONResponse(
+            status_code=401,
+            content={"success": False, "message": "Токен устарел или невалидный"}
+        )
+
+
+@app.post("/set_task")
+async def set_complete_task(data: SetTask, db: AsyncSession = Depends(get_db)):
+    task = await set_task_is_complete(data.token, data.task_id, data.is_completed, db)
+    if task:
+        return {"success": True, "data": task}
         
     else:
         return JSONResponse(

@@ -123,8 +123,31 @@ async def get_user_project(token, project_id, db: AsyncSession):
             {
                 "task_id": task.task_id,
                 "name": task.name,
-                "created_at": task.created_at
+                "created_at": task.created_at,
+                "is_completed": task.is_completed
             }
             for task in project.tasks
         ]
     }
+
+
+async def set_task_is_complete(token, task_id, is_completed, db: AsyncSession):
+    user = await get_user_by_token(token=token, db=db)
+    if not user:
+        return None
+    
+    result = await db.execute(
+        select(Tasks)
+        .join(Projects)
+        .where(
+            Tasks.task_id == task_id,
+            Projects.owner_id == user.id
+        )
+    )
+    task = result.scalar_one_or_none()
+    if task:
+        task.is_completed = is_completed
+        await db.commit()
+        return task
+    else:
+        return None

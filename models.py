@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Integer, ForeignKey, DateTime
+from sqlalchemy import Column, String, Integer, Boolean, ForeignKey, DateTime
 from sqlalchemy.orm import declarative_base, relationship
 from datetime import datetime, timezone
 
@@ -31,8 +31,10 @@ class Tasks(Base):
     __tablename__ = "tasks"
 
     task_id = Column(Integer, primary_key=True, autoincrement=True)
+    project_id = Column(Integer, ForeignKey("projects.project_id"), nullable=False)
+
     name = Column(String, nullable=False)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    is_completed = Column(Boolean, default=False, nullable=False)
 
-    project_id = Column(Integer, ForeignKey("projects.project_id"), nullable=False)
     project = relationship("Projects", back_populates="tasks")
