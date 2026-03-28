@@ -7,8 +7,10 @@ from schemas import (UserRegister, UserLogin, UserProfile,
 from database import (init_db, get_db, create_user, get_user_by_name, 
                       password_check, update_auth_token, get_user_by_token, 
                       create_user_project, add_task_to_project, get_user_project, 
-                      set_task_is_complete)
+                      set_task_is_complete, get_user_projects, auth_user)
 app = FastAPI()
+
+
 
 @app.on_event("startup")
 async def startup():
@@ -21,27 +23,25 @@ async def main():
 
 @app.post("/register")
 async def register(data: UserRegister, db: AsyncSession = Depends(get_db)):
-    existing = await get_user_by_name(data.username, db)
-    if existing:
+    result, status_code, message = await create_user(data.username, data.password, data.email, db)
+    if status_code != 200:
         return JSONResponse(
-            status_code=409,
-            content={"success": False, "message": f"Пользователь '{data.username}' уже существует"}
+            status_code=status_code,
+            content={"success": False, "message": message}
         )
-    result = await create_user(data.username, data.password, data.email, db)
-    return {"success": True, "data": {"id": result.id, "username": result.username}}
+    return {"success": True, "message": message, "data": {"id": result.id, "username": result.username}}
 
 @app.post("/login")
 async def login(data: UserLogin, db: AsyncSession = Depends(get_db)):
-    existing = await get_user_by_name(data.username, db)
-    if existing:
-        user = await password_check(data.username, data.password, db)
-        token = await update_auth_token(user, db)
-        return {"success": True, "data": {"access_token": token}}
-    else:
+    result, status_code, message = await auth_user(data.username, data.password, db)
+    if status_code != 200:
         return JSONResponse(
-            status_code=404,
-            content={"success": False, "message": "Такого пользователя нет"}
+            status_code=status_code,
+            content={"success": False, "message": message}
         )
+    
+    return {"success": True, "message": message, "data": {"access_token": result}}
+
     
 @app.post("/user")
 async def get_user(data: UserProfile, db: AsyncSession = Depends(get_db)):
@@ -98,6 +98,19 @@ async def set_complete_task(data: SetTask, db: AsyncSession = Depends(get_db)):
     task = await set_task_is_complete(data.token, data.task_id, data.is_completed, db)
     if task:
         return {"success": True, "data": task}
+        
+    else:
+        return JSONResponse(
+            status_code=401,
+            content={"success": False, "message": "Токен устарел или невалидный"}
+        )
+    
+
+@app.post("/get_projects")
+async def get_projects(data: UserProfile, db: AsyncSession = Depends(get_db)):
+    project = await get_user_projects(data.token, db)
+    if project:
+        return {"success": True, "data": project}
         
     else:
         return JSONResponse(

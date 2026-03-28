@@ -29,3 +29,4 @@ class SetTask(BaseModel):
     token: str
     task_id: int
     is_completed: bool
+

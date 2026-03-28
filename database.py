@@ -23,24 +23,39 @@ async def init_db():
         await conn.run_sync(Base.metadata.create_all)
 
 async def create_user(username, password, email, db: AsyncSession):
+    existing = await get_user_by_name(username, db)
+    if existing:
+        return None, 409, f"Пользователь '{username}' уже существует"
+    
     hashed_password = generate_password_hash(password)
     user = Users(username=username, password=hashed_password, email=email)
     db.add(user)
     await db.commit()
-    return user
+    return user, 200, "Пользователь успешно создан"
+
+
+async def auth_user(username, password, db: AsyncSession):
+    user = await get_user_by_name(username, db)
+    if not user:
+        return None, 404, "Такого пользователя нет"
+    
+    
+    is_valid = await password_check(user, password)
+    if not is_valid:
+        return None, 401, "Неверный пароль"
+    
+    token = await update_auth_token(user, db)
+    return token, 200, "Успешный вход"
+
 
 async def get_user_by_name(username, db: AsyncSession):
     result = await db.execute(select(Users).where(Users.username == username))
     return result.scalar_one_or_none()
     
-async def password_check(username, password, db: AsyncSession):
-    result = await db.execute(select(Users).where(Users.username == username))
-    user = result.scalar_one_or_none()
-    is_valid = check_password_hash(user.password, password)
-    if is_valid:
-        return user
-    else:
-        return None
+async def password_check(user: Users, password):
+    if not user:
+        return False
+    return check_password_hash(user.password, password)
     
 async def update_auth_token(user: Users, db: AsyncSession):
     token = secrets.token_hex(32)
@@ -151,3 +166,22 @@ async def set_task_is_complete(token, task_id, is_completed, db: AsyncSession):
         return task
     else:
         return None
+
+
+async def get_user_projects(token, db: AsyncSession):
+    user = await get_user_by_token(token=token, db=db)
+    if not user:
+        return None
+    
+    result = await db.execute(
+        select(Projects)
+        .where(
+            Projects.owner_id == user.id
+        )
+    )
+    project = result.scalars().all()
+    if not project:
+        return None
+    
+
+    return project
