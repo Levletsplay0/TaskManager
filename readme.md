@@ -1,4 +1,3 @@
-```markdown
 # TaskManager
 
 Backend для управления задачами на **FastAPI** + **SQLAlchemy** (async SQLite).
