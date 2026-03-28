@@ -43,4 +43,3 @@ uvicorn main:app --reload
 
 ---
 *Made with ❤️ by [Levletsplay0](https://github.com/Levletsplay0)*
-```
