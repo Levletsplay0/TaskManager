@@ -67,7 +67,7 @@ async def get_user_by_token(token, db: AsyncSession):
     result = await db.execute(select(Users).where(Users.token == token))
     user = result.scalar_one_or_none()
     if user:
-        return user
+        return user, 200, "Пользователь найден"
     else:
         return None
 
