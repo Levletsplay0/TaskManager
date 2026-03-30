@@ -45,14 +45,14 @@ async def login(data: UserLogin, db: AsyncSession = Depends(get_db)):
     
 @app.post("/user")
 async def get_user(data: UserProfile, db: AsyncSession = Depends(get_db)):
-    user = await get_user_by_token(data.token, db)
-    if user:
-        return {"success": True, "data": user}
-    else:
+    result, status_code, message = await get_user_by_token(data.token, db)
+    if status_code != 200:
         return JSONResponse(
-            status_code=401,
-            content={"success": False, "message": "Токен устарел или невалидный"}
+            status_code=status_code,
+            content={"success": False, "message": message}
         )
+    
+    return {"success": True, "message": message, "data": result}
 
 
 @app.post("/create_project")
