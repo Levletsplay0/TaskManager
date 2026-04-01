@@ -57,15 +57,15 @@ async def get_user(data: UserProfile, db: AsyncSession = Depends(get_db)):
 
 @app.post("/create_project")
 async def create_project(data: Project, db: AsyncSession = Depends(get_db)):
-    project = await create_user_project(data.token, data.name, db)
-    if project:
-        return {"success": True, "data": project}
-        
-    else:
+    result, status_code, message = await create_user_project(data.token, data.name, db)
+    if status_code != 200:
         return JSONResponse(
-            status_code=401,
-            content={"success": False, "message": "Токен устарел или невалидный"}
+            status_code=status_code,
+            content={"success": False, "message": message}
         )
+    
+    return {"success": True, "message": message, "data": result}
+    
 
 
 @app.post("/add_task")
