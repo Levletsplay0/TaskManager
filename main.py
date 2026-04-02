@@ -1,11 +1,9 @@
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, Header, Path, Body
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from schemas import (UserRegister, UserLogin, UserProfile, 
-                     Project, Task, GetProject, SetTask)
-from database import (init_db, get_db, create_user, get_user_by_name, 
-                      password_check, update_auth_token, get_user_by_token, 
+from schemas import (UserRegister, UserLogin, TaskCreate, TaskStatusUpdate)
+from database import (init_db, get_db, create_user, get_user_by_token, 
                       create_user_project, add_task_to_project, get_user_project, 
                       set_task_is_complete, get_user_projects, auth_user)
 app = FastAPI()
@@ -43,9 +41,29 @@ async def login(data: UserLogin, db: AsyncSession = Depends(get_db)):
     return {"success": True, "message": message, "data": {"access_token": result}}
 
     
-@app.post("/user")
-async def get_user(data: UserProfile, db: AsyncSession = Depends(get_db)):
-    result, status_code, message = await get_user_by_token(data.token, db)
+@app.get("/users/me")
+async def get_user(auth_token: str = Header(..., description="Токен аутентификации"), db: AsyncSession = Depends(get_db)):
+    user, status_code, message = await get_user_by_token(auth_token, db)
+    if status_code != 200:
+        return JSONResponse(
+            status_code=status_code,
+            content={"success": False, "message": message}
+        )
+    
+    return {
+        "success": True,
+        "message": message,
+        "data": {
+            "id": user.id,
+            "username": user.username,
+            "email": user.email
+        }
+    }
+
+
+@app.post("/projects")
+async def create_project(auth_token: str = Header(..., description="Токен аутентификации"), name: str = Body(..., description="..."), db: AsyncSession = Depends(get_db)):
+    result, status_code, message = await create_user_project(auth_token, name, db)
     if status_code != 200:
         return JSONResponse(
             status_code=status_code,
@@ -53,67 +71,52 @@ async def get_user(data: UserProfile, db: AsyncSession = Depends(get_db)):
         )
     
     return {"success": True, "message": message, "data": result}
+    
 
 
-@app.post("/create_project")
-async def create_project(data: Project, db: AsyncSession = Depends(get_db)):
-    result, status_code, message = await create_user_project(data.token, data.name, db)
+@app.post("/projects/{project_id}/tasks")
+async def create_task(project_id: int = Path(..., description="ID проекта"), auth_token: str = Header(..., description="Токен аутентификации"), task_data: TaskCreate = Body(..., description="Данные задачи"), db: AsyncSession = Depends(get_db)):
+    task, status_code, message = await add_task_to_project(auth_token, task_data.name, project_id, db)
+    if status_code != 200:
+        return JSONResponse(status_code=status_code, content={"success": False, "message": message})
+        
+    return {"success": True, "message": message, "data": task}
+
+
+@app.get("/projects/{project_id}")
+async def get_project(project_id: int = Path(..., description="ID проекта"), auth_token: str = Header(..., description="Токен аутентификации"), db: AsyncSession = Depends(get_db)):
+    project, status_code, message = await get_user_project(auth_token, project_id, db)
+    
+    if status_code != 200:
+        return JSONResponse(
+            status_code=status_code,
+            content={"success": False, "message": message}
+        )
+        
+    return {"success": True, "message": message, "data": project}
+
+
+
+@app.patch("/tasks/{task_id}")
+async def set_complete_task(task_id: int = Path(..., description="ID задачи"), auth_token: str = Header(..., description="Токен авторизации"), task_data: TaskStatusUpdate = Body(..., description="Данные для обновления"), db: AsyncSession = Depends(get_db)):
+    task, status_code, message = await set_task_is_complete(auth_token, task_id, task_data.is_completed, db)
+    
     if status_code != 200:
         return JSONResponse(
             status_code=status_code,
             content={"success": False, "message": message}
         )
     
-    return {"success": True, "message": message, "data": result}
-    
+    return {"success": True, "message": message, "data": task}
 
 
-@app.post("/add_task")
-async def create_task(data: Task, db: AsyncSession = Depends(get_db)):
-    task = await add_task_to_project(data.token, data.name, data.project_id, db)
-    if task:
-        return {"success": True, "data": task}
-        
-    else:
+@app.get("/projects")
+async def get_projects(auth_token: str = Header(..., description="Токен аутентификации"), db: AsyncSession = Depends(get_db)):
+    projects, status_code, message = await get_user_projects(auth_token, db)
+    if status_code != 200:
         return JSONResponse(
-            status_code=401,
-            content={"success": False, "message": "Токен устарел или невалидный"}
-        )
-
-@app.post("/get_project")
-async def get_project(data: GetProject, db: AsyncSession = Depends(get_db)):
-    project = await get_user_project(data.token, data.project_id, db)
-    if project:
-        return {"success": True, "data": project}
-        
-    else:
-        return JSONResponse(
-            status_code=401,
-            content={"success": False, "message": "Токен устарел или невалидный"}
-        )
-
-
-@app.post("/set_task")
-async def set_complete_task(data: SetTask, db: AsyncSession = Depends(get_db)):
-    task = await set_task_is_complete(data.token, data.task_id, data.is_completed, db)
-    if task:
-        return {"success": True, "data": task}
-        
-    else:
-        return JSONResponse(
-            status_code=401,
-            content={"success": False, "message": "Токен устарел или невалидный"}
+            status_code=status_code,
+            content={"success": False, "message": message}
         )
     
-
-@app.post("/get_projects")
-async def get_projects(data: UserProfile, db: AsyncSession = Depends(get_db)):
-    project = await get_user_projects(data.token, db)
-    if project:
-        return {"success": True, "data": project}
-        
-    else:
-        return JSONResponse(
-            status_code=401,
-            content={"success": False, "message": "Токен устарел или невалидный"}
-        )
+    return {"success": True, "message": message, "data": projects}
