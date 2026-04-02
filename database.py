@@ -69,13 +69,13 @@ async def get_user_by_token(token, db: AsyncSession):
     if user:
         return user, 200, "Пользователь найден"
     else:
-        return None, 401, "Пользователь не найден"
+        return None, 401, "Токен устарел или невалиден"
 
 
 async def create_user_project(token, name, db: AsyncSession):
     user, status_code, message = await get_user_by_token(token=token, db=db)
     if not user:
-        return None, 401, "Пользователь не найден"
+        return user, status_code, message
     user_id = user.id
     project = Projects(name=name, owner_id=user_id)
     db.add(project)
@@ -86,9 +86,9 @@ async def create_user_project(token, name, db: AsyncSession):
 
 
 async def add_task_to_project(token, name, project_id, db: AsyncSession):
-    user = await get_user_by_token(token=token, db=db)
+    user, status_code, message = await get_user_by_token(token=token, db=db)
     if not user:
-        return None
+        return user, status_code, message
     
     result = await db.execute(
         select(Projects).where(
@@ -100,21 +100,21 @@ async def add_task_to_project(token, name, project_id, db: AsyncSession):
     project = result.scalar_one_or_none()
 
     if not project:
-        return None
+        return None, 404, "Проект не найден"
     
     task = Tasks(name=name, project_id=project_id)
     db.add(task)
     await db.commit()
     await db.refresh(task)
 
-    return task
+    return task, 200, "Задача создана"
 
 
 
 async def get_user_project(token, project_id, db: AsyncSession):
-    user = await get_user_by_token(token=token, db=db)
+    user, status_code, message = await get_user_by_token(token=token, db=db)
     if not user:
-        return None
+        return user, status_code, message
     
     result = await db.execute(
         select(Projects)
@@ -126,7 +126,7 @@ async def get_user_project(token, project_id, db: AsyncSession):
     )
     project = result.scalar_one_or_none()
     if not project:
-        return None
+        return None, 404, "Проект не найден"
     
 
     return {
@@ -143,13 +143,13 @@ async def get_user_project(token, project_id, db: AsyncSession):
             }
             for task in project.tasks
         ]
-    }
+    }, 200, "Проект найден"
 
 
 async def set_task_is_complete(token, task_id, is_completed, db: AsyncSession):
-    user = await get_user_by_token(token=token, db=db)
+    user, status_code, message = await get_user_by_token(token=token, db=db)
     if not user:
-        return None
+        return user, status_code, message
     
     result = await db.execute(
         select(Tasks)
@@ -163,15 +163,15 @@ async def set_task_is_complete(token, task_id, is_completed, db: AsyncSession):
     if task:
         task.is_completed = is_completed
         await db.commit()
-        return task
+        return task, 200, "Задача помечена как выполнена"
     else:
-        return None
+        return None, 404, "Такой задачи нет"
 
 
 async def get_user_projects(token, db: AsyncSession):
-    user = await get_user_by_token(token=token, db=db)
+    user, status_code, message = await get_user_by_token(token=token, db=db)
     if not user:
-        return None
+        return user, status_code, message
     
     result = await db.execute(
         select(Projects)
@@ -179,9 +179,9 @@ async def get_user_projects(token, db: AsyncSession):
             Projects.owner_id == user.id
         )
     )
-    project = result.scalars().all()
-    if not project:
-        return None
+    projects = result.scalars().all()
+    if not projects:
+        return None, 404, "У вас нет проектов"
     
 
-    return project
+    return projects, 200, "Все проекты найдены"
