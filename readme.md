@@ -1,6 +1,6 @@
 # TaskManager
 
-Backend для управления задачами на **FastAPI** + **SQLAlchemy** (async SQLite) с RESTful API и токеновой аутентификацией.
+Backend для управления задачами на **FastAPI** + **SQLAlchemy** (async SQLite).
 
 ## 🚀 Быстрый старт
 
