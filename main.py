@@ -6,14 +6,19 @@ from schemas import (UserRegister, UserLogin, TaskCreate, TaskStatusUpdate)
 from database import (init_db, get_db, create_user, get_user_by_token, 
                       create_user_project, add_task_to_project, get_user_project, 
                       set_task_is_complete, get_user_projects, auth_user)
-app = FastAPI()
+
+from contextlib import asynccontextmanager
 
 
 
-@app.on_event("startup")
-async def startup():
+@asynccontextmanager
+async def lifespan(app: FastAPI):
     await init_db()
+    
+    yield
 
+
+app = FastAPI(lifespan=lifespan)
 
 @app.get("/")
 async def main():
