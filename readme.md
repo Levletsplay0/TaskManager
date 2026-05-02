@@ -8,7 +8,7 @@ Backend для управления задачами на **FastAPI** + **SQLAlc
 git clone https://github.com/Levletsplay0/TaskManager.git
 cd TaskManager
 
-pip install fastapi uvicorn sqlalchemy aiosqlite pydantic[email] werkzeug
+pip install -r requirements.txt
 
 uvicorn main:app --reload
 ```
