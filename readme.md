@@ -5,14 +5,11 @@ Backend для управления задачами на **FastAPI** + **SQLAlc
 ## 🚀 Быстрый старт
 
 ```bash
-# Клонирование репозитория
 git clone https://github.com/Levletsplay0/TaskManager.git
 cd TaskManager
 
-# Установка зависимостей
 pip install fastapi uvicorn sqlalchemy aiosqlite pydantic[email] werkzeug
 
-# Запуск сервера в режиме разработки
 uvicorn main:app --reload
 ```
 
@@ -112,10 +109,6 @@ curl -X PATCH http://127.0.0.1:8000/tasks/1 \
   -H "auth_token: ваш_токен_здесь" \
   -d '{"is_completed": true}'
 ```
-
----
-
-> 💡 **Совет**: Используйте встроенную документацию Swagger UI по адресу `/docs` для интерактивного тестирования эндпоинтов.
 
 ---
 *Made with ❤️ by [Levletsplay0](https://github.com/Levletsplay0)*
