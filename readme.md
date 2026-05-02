@@ -13,8 +13,7 @@ pip install -r requirements.txt
 uvicorn main:app --reload
 ```
 
-🔗 API: `http://127.0.0.1:8000`  
-📚 Auto Docs: `http://127.0.0.1:8000/docs`  
+📚 Docs: `http://127.0.0.1:8000/docs`  
 
 ---
 
