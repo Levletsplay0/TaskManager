@@ -4,10 +4,12 @@ from models import Users, Base, Projects, Tasks
 from werkzeug.security import generate_password_hash, check_password_hash
 import secrets
 from sqlalchemy.orm import selectinload
+import os
+
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite+aiosqlite:////app/data/app.db")
 
 
-
-async_engine = create_async_engine("sqlite+aiosqlite:///users.db")
+async_engine = create_async_engine(DATABASE_URL)
 
 AsyncSessionLocal = async_sessionmaker(
     bind=async_engine,
