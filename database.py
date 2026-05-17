@@ -187,3 +187,49 @@ async def get_user_projects(token, db: AsyncSession):
     
 
     return projects, 200, "Все проекты найдены"
+
+
+async def delete_user_project(token, project_id, db: AsyncSession):
+    user, status_code, message = await get_user_by_token(token=token, db=db)
+    if not user:
+        return None, status_code, message
+
+    result = await db.execute(
+        select(Projects).where(
+            Projects.project_id == project_id,
+            Projects.owner_id == user.id
+        )
+    )
+    project = result.scalar_one_or_none()
+    
+    if not project:
+        return None, 404, "Проект не найден или у вас нет прав"
+
+    await db.delete(project)
+    await db.commit()
+    
+    return {"project_id": project_id}, 200, "Проект успешно удалён"
+
+
+async def delete_task(token, task_id, db: AsyncSession):
+    user, status_code, message = await get_user_by_token(token=token, db=db)
+    if not user:
+        return None, status_code, message
+
+    result = await db.execute(
+        select(Tasks)
+        .join(Projects)
+        .where(
+            Tasks.task_id == task_id,
+            Projects.owner_id == user.id
+        )
+    )
+    task = result.scalar_one_or_none()
+    
+    if not task:
+        return None, 404, "Задача не найдена или у вас нет прав"
+
+    await db.delete(task)
+    await db.commit()
+    
+    return {"task_id": task_id}, 200, "Задача успешно удалена"
