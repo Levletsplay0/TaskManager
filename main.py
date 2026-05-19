@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from schemas import (UserRegister, UserLogin, TaskCreate, TaskStatusUpdate)
 from database import (init_db, get_db, create_user, get_user_by_token, 
                       create_user_project, add_task_to_project, get_user_project, 
-                      set_task_is_complete, get_user_projects, auth_user, delete_user_project)
+                      set_task_is_complete, get_user_projects, auth_user, delete_user_project, delete_task)
 
 from contextlib import asynccontextmanager
 
@@ -139,7 +139,7 @@ async def delete_project(project_id: int = Path(..., description="ID проек�
     return {"success": True, "message": message, "data": result}
 
 @app.delete("/tasks/{task_id}")
-async def delete_task(task_id: int = Path(..., description="ID задачи"), auth_token: str = Header(..., description="Токен аутентификации"), db: AsyncSession = Depends(get_db)):
+async def delete_user_task(task_id: int = Path(..., description="ID задачи"), auth_token: str = Header(..., description="Токен аутентификации"), db: AsyncSession = Depends(get_db)):
     result, status_code, message = await delete_task(auth_token, task_id, db)
     if status_code != 200:
         return JSONResponse(
